@@ -1,14 +1,17 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { settings } from "@/config/settings.ts";
 
 const BasicLayout = () => {
   const location = useLocation();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold text-blue-600">My App</h1>
+            <h1 className="text-xl font-bold text-blue-600">
+              {settings.appName}
+            </h1>
             <nav>
               <ul className="flex space-x-6">
                 <li>
@@ -41,11 +44,13 @@ const BasicLayout = () => {
         </div>
       </header>
 
-      <main className="grow container mx-auto px-4 py-8">
-        <Outlet />
+      <main className="grow overflow-y-auto">
+        <div className="mx-auto px-4 py-8">
+          <Outlet />
+        </div>
       </main>
 
-      <footer className="bg-white border-t py-6">
+      <footer className="bg-white p-2">
         <div className="container mx-auto px-4 text-center text-gray-500">
           <p>© 2025 My App. All rights reserved.</p>
         </div>

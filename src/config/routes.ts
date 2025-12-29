@@ -16,15 +16,15 @@ const routes: RouteConfig[] = [
   },
   {
     path: "/",
-    component: "@/layouts/BasicLayout",
+    component: "@/layouts/basic-layout",
     children: [
       {
         path: "/",
-        component: "@/pages/Home",
+        component: "@/pages/home",
       },
       {
         path: "/about",
-        component: "@/pages/About",
+        component: "@/pages/about",
         auth: true, // 示例：about 页面需要登录才能访问
       },
     ],

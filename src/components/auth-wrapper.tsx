@@ -1,6 +1,7 @@
 import { type FC, type ReactNode, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { AuthType } from "../config/routes.ts";
+import PageLoading from "./page-loading.tsx";
 
 interface AuthWrapperProps {
   children: ReactNode;
@@ -26,6 +27,7 @@ const getUserRoles = (): string[] => {
 
 // 检查是否有权限访问
 const hasPermission = (requireAuth: AuthType): boolean => {
+  console.log("[auth]", requireAuth);
   // 如果不需要认证，则有权限
   if (
     requireAuth === undefined ||
@@ -95,7 +97,7 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, requireAuth }) => {
 
   // 如果还在检查认证状态，显示加载指示器
   if (isChecking) {
-    return <div>Checking auth...</div>;
+    return <PageLoading description="Checking auth..." />;
   }
 
   // 认证检查完成后渲染子组件

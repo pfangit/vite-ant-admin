@@ -5,11 +5,11 @@ import {
   type RouteObject,
   RouterProvider,
 } from "react-router-dom";
-import AuthWrapper from "@/components/AuthWrapper";
+import AuthWrapper from "@/components/auth-wrapper.tsx";
 import routes from "@/config/routes";
 
 // 未授权页面
-const UnauthorizedPage = lazy(() => import("@/pages/Unauthorized"));
+const UnauthorizedPage = lazy(() => import("@/pages/unauthorized.tsx"));
 
 // 加载指示器组件
 const LoadingIndicator = () => (
