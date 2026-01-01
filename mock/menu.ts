@@ -2,7 +2,7 @@ import { isSuccess } from "./is-success";
 
 export default [
   {
-    url: "/api/current", // 接口路径
+    url: "/api/menu", // 接口路径
     method: "get", // 请求方法
     response: () => {
       const { success, code } = isSuccess();
@@ -14,15 +14,16 @@ export default [
         };
       }
       // 响应函数
-      const currentUser = {
-        uid: 1,
-        nickname: "@cname",
-        avatar: "https://img95.699pic.com/photo/40250/6425.jpg_wh300.jpg",
+      const menu = {
+        "menuId|+1": 1,
+        name: "@cname",
+        path: "@cname",
+        icon: "",
       };
       return {
         code: 0,
         message: "",
-        data: currentUser,
+        data: menu,
         success: true,
       };
     },

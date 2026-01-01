@@ -2,6 +2,13 @@ import { createAlova } from "alova";
 import adapterFetch from "alova/fetch";
 import ReactHook from "alova/react";
 
+export type ApiResponse<T> = {
+  success: boolean;
+  code: number;
+  data: T;
+  message: string;
+};
+
 export const request = createAlova({
   baseURL: "/",
   requestAdapter: adapterFetch(),
@@ -16,7 +23,6 @@ export const request = createAlova({
     // 当使用 `alova/fetch` 请求适配器时，第一个参数接收Response对象
     // 第二个参数为当前请求的method实例，你可以用它同步请求前后的配置信息
     onSuccess: async (response, method) => {
-      console.log("[request][success]", method);
       if (response.status >= 400) {
         throw new Error(response.statusText);
       }
@@ -45,6 +51,7 @@ export const request = createAlova({
         }
       }
       // 解析的响应数据将传给method实例的transform钩子函数，这些函数将在后续讲解
+      console.log("[request][success]", data);
       return data;
     },
 
@@ -65,3 +72,12 @@ export const request = createAlova({
     },
   },
 });
+
+export const fetch = async <T = any>(
+  url: string,
+  options?: any,
+): Promise<T> => {
+  const response = await request.Get(url, options);
+  console.log(response);
+  return response as T;
+};

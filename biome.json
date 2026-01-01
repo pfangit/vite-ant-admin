@@ -24,6 +24,8 @@
         "noExplicitAny": "warn"
       },
       "a11y": {
+        "useKeyWithClickEvents": "warn",
+        "noStaticElementInteractions": "off",
         "useValidAnchor": "warn",
         "useButtonType": "warn"
       },
