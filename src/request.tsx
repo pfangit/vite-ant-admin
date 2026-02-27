@@ -78,6 +78,5 @@ export const fetch = async <T = any>(
   options?: any,
 ): Promise<T> => {
   const response = await request.Get(url, options);
-  console.log(response);
   return response as T;
 };

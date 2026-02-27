@@ -2,6 +2,7 @@ import { Spin } from "antd";
 import { lazy, Suspense } from "react";
 import {
   createBrowserRouter,
+  Navigate,
   type RouteObject,
   RouterProvider,
 } from "react-router-dom";
@@ -46,18 +47,74 @@ const loadComponent = (componentPath?: string) => {
 // 创建路由配置
 const createRoutesConfig = (routesConfig: typeof routes): RouteObject[] => {
   return routesConfig.map((route) => {
+    // 处理重定向路由
+    if (route.redirect) {
+      return {
+        path: route.path,
+        element: <Navigate to={route.redirect} replace />,
+      };
+    }
+
     // 动态导入组件
     const Component = loadComponent(route.component);
 
+    // 处理布局组件
+    if (route.layout !== false && (route.children || route.routes)) {
+      const LayoutComponent = loadComponent(
+        typeof route.layout === "string"
+          ? route.layout
+          : "@/layouts/basic-layout",
+      );
+      if (LayoutComponent) {
+        // 处理子路由
+        const childrenRoutes = createRoutesConfig(
+          route.children || route.routes || [],
+        );
+
+        // 检查是否有index路由
+        const hasIndexRoute = childrenRoutes.some((child) => child.index);
+
+        // 如果没有index路由且当前路由有component，则添加一个index路由
+        if (!hasIndexRoute && Component) {
+          childrenRoutes.unshift({
+            index: true,
+            element: (
+              <AuthWrapper requireAuth={route.auth}>
+                <Suspense fallback={<LoadingIndicator />}>
+                  <Component />
+                </Suspense>
+              </AuthWrapper>
+            ),
+          });
+        }
+
+        return {
+          path: route.path,
+          element: (
+            <AuthWrapper requireAuth={route.auth}>
+              <Suspense fallback={<LoadingIndicator />}>
+                <LayoutComponent />
+              </Suspense>
+            </AuthWrapper>
+          ),
+          children: childrenRoutes,
+        };
+      }
+    }
+
+    // 构建路由元素（没有布局的情况）
+    const routeElement = (
+      <AuthWrapper key={route.path} requireAuth={route.auth}>
+        <Suspense fallback={<LoadingIndicator />}>
+          {Component && <Component />}
+        </Suspense>
+      </AuthWrapper>
+    );
+
     return {
       path: route.path,
-      element: (
-        <AuthWrapper requireAuth={route.auth}>
-          <Suspense fallback={<LoadingIndicator />}>
-            {Component && <Component />}
-          </Suspense>
-        </AuthWrapper>
-      ),
+      ...(route.index && { index: true }),
+      element: routeElement,
       ...(route.children && {
         children: createRoutesConfig(route.children),
       }),

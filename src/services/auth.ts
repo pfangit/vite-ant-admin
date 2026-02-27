@@ -1,5 +1,5 @@
 import type { MenuDataItem } from "@ant-design/pro-components";
-import { type ApiResponse, fetch } from "@/request.tsx";
+import { fetch } from "@/request.tsx";
 
 export type CurrentUser = {
   uid: string;
@@ -13,5 +13,5 @@ export const fetchCurrentUser = () => {
 };
 
 export const fetchMenus = () => {
-  return fetch<ApiResponse<MenuDataItem[]>>("/api/menus", {});
+  return fetch<MenuDataItem[]>("/api/menus", {});
 };

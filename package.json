@@ -16,7 +16,7 @@
     "@ant-design/pro-components": "^2.8.10",
     "alova": "^3.4.1",
     "antd": "^6.1.1",
-    "lodash-es": "^4.17.22",
+    "lodash-es": "^4.17.23",
     "lucide-react": "^0.562.0",
     "rc-field-form": "^2.7.1",
     "react": "^19.2.0",

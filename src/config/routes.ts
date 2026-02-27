@@ -1,57 +1,76 @@
 export type AuthType = boolean | string | string[] | undefined;
 
-// 定义路由配置类型
+// UmiJS风格的路由配置类型
 export interface RouteConfig {
   path: string;
-  layout?: string | boolean;
-  name?: string;
   component?: string;
-  auth?: AuthType; // 支持布尔值、单个角色或角色数组
+  layout?: string | boolean;
+  redirect?: string;
+  wrappers?: string[];
+  name?: string;
+  auth?: AuthType;
+  exact?: boolean;
+  routes?: RouteConfig[]; // alias for children
   children?: RouteConfig[];
+  // 约定式路由相关
+  index?: boolean;
+  id?: string;
 }
 
-// 简化的路由配置 - 用户只需提供路径和组件路径
+// UmiJS风格的路由配置
 const routes: RouteConfig[] = [
-  {
-    path: "/login",
-    component: "@/pages/auth/login",
-  },
   {
     path: "/",
     component: "@/layouts/basic-layout",
-    children: [
+    routes: [
       {
         path: "/",
         component: "@/pages/home",
+        name: "首页",
+        index: true,
       },
       {
         path: "/about",
         component: "@/pages/about",
-        auth: true, // 示例：about 页面需要登录才能访问
+        name: "关于我们",
+        auth: true,
+        wrappers: ["@/components/logger-wrapper"],
+      },
+      {
+        path: "/admin",
+        component: "@/layouts/basic-layout",
+        auth: "admin",
+        routes: [
+          {
+            path: "/admin/user",
+            component: "@/pages/admin/user",
+            name: "用户管理",
+          },
+        ],
       },
     ],
+  },
+  {
+    path: "/login",
+    component: "@/pages/auth/login",
+    layout: false,
+    name: "登录",
   },
   {
     path: "/user",
     layout: false,
-    children: [
+    routes: [
       {
-        name: "login",
         path: "/user/login",
-        component: "./user/login",
+        redirect: "/login",
       },
     ],
   },
+  // 404 页面
   {
-    path: "/admin",
-    component: "@/layouts/basic-layout",
-    auth: "admin",
-    children: [
-      {
-        path: "/admin/user",
-        component: "@/pages/admin/user",
-      },
-    ],
+    path: "*",
+    component: "@/pages/404",
+    layout: false,
   },
 ];
 

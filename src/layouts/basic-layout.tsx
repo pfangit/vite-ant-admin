@@ -15,13 +15,19 @@ const BasicLayout = () => {
   const [pathname, setPathname] = useState(location.pathname);
 
   const { user } = useCurrentUser();
-  const { menus } = useMenus();
+  const { menus, loading } = useMenus();
 
   const authedUser: CurrentUser | Record<string, any> = user || {};
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   if (typeof document === "undefined") {
     return <div />;
   }
+
+  console.log(user, menus);
 
   return (
     <div
@@ -39,7 +45,6 @@ const BasicLayout = () => {
           <ProLayout
             title={settings.appName}
             logo={false}
-            layout={"mix"}
             location={{
               pathname,
             }}
@@ -49,6 +54,8 @@ const BasicLayout = () => {
               },
             }}
             siderMenuType="group"
+            layout="mix"
+            splitMenus={true}
             menu={{
               collapsedShowGroupTitle: true,
               request: async () => {
@@ -128,7 +135,7 @@ const BasicLayout = () => {
             <Outlet />
           </ProLayout>
         </ConfigProvider>
-      </ProConfigProvider>
+      </ProConfigProvider>{" "}
     </div>
   );
 };
