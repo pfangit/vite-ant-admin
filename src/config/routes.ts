@@ -3,7 +3,9 @@ export type AuthType = boolean | string | string[] | undefined;
 // 定义路由配置类型
 export interface RouteConfig {
   path: string;
-  component: string;
+  layout?: string | boolean;
+  name?: string;
+  component?: string;
   auth?: AuthType; // 支持布尔值、单个角色或角色数组
   children?: RouteConfig[];
 }
@@ -26,6 +28,28 @@ const routes: RouteConfig[] = [
         path: "/about",
         component: "@/pages/about",
         auth: true, // 示例：about 页面需要登录才能访问
+      },
+    ],
+  },
+  {
+    path: "/user",
+    layout: false,
+    children: [
+      {
+        name: "login",
+        path: "/user/login",
+        component: "./user/login",
+      },
+    ],
+  },
+  {
+    path: "/admin",
+    component: "@/layouts/basic-layout",
+    auth: "admin",
+    children: [
+      {
+        path: "/admin/user",
+        component: "@/pages/admin/user",
       },
     ],
   },

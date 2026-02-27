@@ -22,7 +22,11 @@ const LoadingIndicator = () => (
 );
 
 // 动态导入组件的函数
-const loadComponent = (componentPath: string) => {
+const loadComponent = (componentPath?: string) => {
+  if (!componentPath) {
+    return null;
+  }
+
   // 处理路径别名
   let normalizedPath = componentPath;
   if (componentPath.startsWith("@/")) {
@@ -50,7 +54,7 @@ const createRoutesConfig = (routesConfig: typeof routes): RouteObject[] => {
       element: (
         <AuthWrapper requireAuth={route.auth}>
           <Suspense fallback={<LoadingIndicator />}>
-            <Component />
+            {Component && <Component />}
           </Suspense>
         </AuthWrapper>
       ),

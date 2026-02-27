@@ -5,7 +5,7 @@ export const useCurrentUser = () => {
   // 优先本地session缓存读取用户信息
   const sessionItem = sessionStorage.getItem("current-user");
   let currentUser: CurrentUser | null = null;
-  if (sessionItem) {
+  if (sessionItem && "undefined" !== sessionItem) {
     currentUser = JSON.parse(sessionItem) as unknown as CurrentUser;
   }
   const [user, setUser] = useState<CurrentUser | null>(currentUser);

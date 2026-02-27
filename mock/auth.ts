@@ -18,6 +18,7 @@ export default [
         uid: 1,
         nickname: "@cname",
         avatar: "https://img95.699pic.com/photo/40250/6425.jpg_wh300.jpg",
+        role: ["admin"],
       };
       return {
         code: 0,
@@ -39,6 +40,7 @@ export default [
         code: 0, // 自定义状态码
         message: "", // 状态信息
         data: data, // 返回数据
+        success: true,
       };
     },
   },

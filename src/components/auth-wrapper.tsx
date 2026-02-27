@@ -22,17 +22,6 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, requireAuth }) => {
     return user !== null && user !== undefined;
   };
 
-  // 模拟获取用户角色函数
-  const getUserRoles = (): string[] => {
-    // 实际项目中这里会从 token 或其他地方解析用户角色
-    const user = localStorage.getItem("token") ? ["user"] : [];
-    // 模拟管理员角色
-    if (localStorage.getItem("token") === "admin") {
-      user.push("admin");
-    }
-    return user;
-  };
-
   // 检查是否有权限访问
   const hasPermission = async (requireAuth: AuthType): Promise<boolean> => {
     console.log("[auth][require]", requireAuth);
@@ -55,7 +44,7 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, requireAuth }) => {
       return false;
     }
 
-    const userRoles = getUserRoles();
+    const userRoles = user!.role;
 
     // 如果是单个角色字符串
     if (typeof requireAuth === "string") {

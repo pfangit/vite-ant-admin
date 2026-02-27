@@ -3,8 +3,10 @@ import { ConfigProvider, Dropdown } from "antd";
 import { InfoIcon, LogOutIcon, ShieldQuestion } from "lucide-react";
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import routes from "@/config/routes.ts";
 import { settings } from "@/config/settings.ts";
 import { useCurrentUser } from "@/hooks/use-current-user.ts";
+import { useMenus } from "@/hooks/use-menus.ts";
 import type { CurrentUser } from "@/services/auth.ts";
 
 const BasicLayout = () => {
@@ -13,6 +15,7 @@ const BasicLayout = () => {
   const [pathname, setPathname] = useState(location.pathname);
 
   const { user } = useCurrentUser();
+  const { menus } = useMenus();
 
   const authedUser: CurrentUser | Record<string, any> = user || {};
 
@@ -48,12 +51,19 @@ const BasicLayout = () => {
             siderMenuType="group"
             menu={{
               collapsedShowGroupTitle: true,
+              request: async () => {
+                return menus || [];
+              },
+            }}
+            route={{
+              path: "/",
+              children: routes,
             }}
             avatarProps={{
               src: authedUser.avatar,
               size: "small",
               title: authedUser.nickname,
-              render: (props, dom) => {
+              render: (_props, dom) => {
                 return (
                   <Dropdown
                     menu={{

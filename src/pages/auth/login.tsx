@@ -29,15 +29,14 @@ const Login = () => {
 
   // 获取登录前的完整地址（包括查询参数）
   // 如果没有来源地址或者来源地址就是登录页，则默认跳转到首页
-  const from = (location.state as { from?: string })?.from || 
-               (location.pathname + location.search) || "/";
+  const from =
+    (location.state as { from?: string })?.from ||
+    location.pathname + location.search ||
+    "/";
 
-  const { loading, error, send } = useRequest(
-    request.Post("/api/auth/login", {}),
-    {
-      immediate: false, // 手动发送，提交数据
-    },
-  ).onSuccess((event) => {
+  const { loading, send } = useRequest(request.Post("/api/auth/login", {}), {
+    immediate: false, // 手动发送，提交数据
+  }).onSuccess((event) => {
     console.log(event.data); // 当前请求的响应数据
     // 模拟保存cookie
     localStorage.setItem(
@@ -45,15 +44,16 @@ const Login = () => {
       (event.data as unknown as { token: string }).token,
     );
     // 登录成功后跳转回登录前的地址
-    navigator(from, { replace: true });
+    if (from.startsWith("/login")) {
+      navigator("/", { replace: true });
+    } else {
+      navigator(from, { replace: true });
+    }
   });
 
   const onFinish = (values: LoginForm) => {
-    console.log("Received values of form: ", values);
     send(values);
   };
-
-  console.log(error);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-500 to-purple-600 p-4">
