@@ -73,7 +73,11 @@ export const request = createAlova({
   },
 });
 
-export const fetch = async <T = any>(
+export const fecth = <T = any>(url: string, options?: any) => {
+  return request.Get<T>(url, options);
+};
+
+export const asyncFetch = async <T = any>(
   url: string,
   options?: any,
 ): Promise<T> => {

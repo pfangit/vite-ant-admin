@@ -3,14 +3,13 @@ export type AuthType = boolean | string | string[] | undefined;
 // UmiJS风格的路由配置类型
 export interface RouteConfig {
   path: string;
+  absPath?: string;
   component?: string;
   layout?: string | boolean;
   redirect?: string;
-  wrappers?: string[];
   name?: string;
   auth?: AuthType;
   exact?: boolean;
-  routes?: RouteConfig[]; // alias for children
   children?: RouteConfig[];
   // 约定式路由相关
   index?: boolean;
@@ -21,29 +20,28 @@ export interface RouteConfig {
 const routes: RouteConfig[] = [
   {
     path: "/",
-    component: "@/layouts/basic-layout",
-    routes: [
+    layout: "@/layouts/basic-layout",
+    children: [
       {
         path: "/",
-        component: "@/pages/home",
+        component: "/home",
         name: "首页",
         index: true,
       },
       {
         path: "/about",
-        component: "@/pages/about",
+        component: "/about",
         name: "关于我们",
         auth: true,
-        wrappers: ["@/components/logger-wrapper"],
       },
       {
         path: "/admin",
         component: "@/layouts/basic-layout",
         auth: "admin",
-        routes: [
+        children: [
           {
             path: "/admin/user",
-            component: "@/pages/admin/user",
+            component: "/admin/user",
             name: "用户管理",
           },
         ],
@@ -52,14 +50,14 @@ const routes: RouteConfig[] = [
   },
   {
     path: "/login",
-    component: "@/pages/auth/login",
+    component: "/auth/login",
     layout: false,
     name: "登录",
   },
   {
     path: "/user",
     layout: false,
-    routes: [
+    children: [
       {
         path: "/user/login",
         redirect: "/login",
@@ -69,7 +67,7 @@ const routes: RouteConfig[] = [
   // 404 页面
   {
     path: "*",
-    component: "@/pages/404",
+    component: "/404",
     layout: false,
   },
 ];

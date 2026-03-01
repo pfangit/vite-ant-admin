@@ -1,141 +1,130 @@
-import { Spin } from "antd";
-import { lazy, Suspense } from "react";
-import {
-  createBrowserRouter,
-  Navigate,
-  type RouteObject,
-  RouterProvider,
-} from "react-router-dom";
-import AuthWrapper from "@/components/auth-wrapper.tsx";
-import routes from "@/config/routes";
+import { PageLoading } from "@ant-design/pro-components";
+import { createElement, lazy, Suspense } from "react";
+import { Navigate } from "react-router";
+import { createBrowserRouter, type RouteObject } from "react-router-dom";
+import routes, { type RouteConfig } from "@/config/routes.ts";
+import { settings } from "@/config/settings.ts";
+import AuthWrapper from "@/wrappers/auth-wrapper";
 
 // 未授权页面
 const UnauthorizedPage = lazy(() => import("@/pages/unauthorized.tsx"));
 
 // 加载指示器组件
-const LoadingIndicator = () => (
-  <div className="flex justify-center items-center h-screen">
-    <div className="flex flex-col items-center">
-      <Spin size="large" />
-      <span className="mt-4 text-gray-500">Loading...</span>
-    </div>
-  </div>
-);
+const LoadingIndicator = () => <PageLoading />;
 
-// 动态导入组件的函数
-const loadComponent = (componentPath?: string) => {
-  if (!componentPath) {
+const lazyLoad = (path?: string, basePath: string = "") => {
+  if (!path) {
     return null;
   }
-
   // 处理路径别名
-  let normalizedPath = componentPath;
-  if (componentPath.startsWith("@/")) {
-    normalizedPath = componentPath.replace("@/", "../");
+  let normalizedPath = path;
+
+  // 优先处理 @/ 别名
+  if (path.startsWith("@/")) {
+    normalizedPath = path.replace("@/", `../${basePath}`);
   }
-  console.log("[load]", componentPath, normalizedPath);
-  // 返回懒加载组件
-  return lazy(
-    () =>
-      import(
-        /* @vite-ignore */
-        normalizedPath
-      ),
-  );
+  // 处理绝对路径（相对于 src 目录）
+  else if (path.startsWith("/")) {
+    normalizedPath = path.replace(/^\//, `../${basePath}`);
+  }
+  // 处理 ./ 相对路径（假设相对于 src 目录）
+  else if (path.startsWith("./")) {
+    normalizedPath = path.replace(/^\.\//, `../${basePath}`);
+  }
+  // 其他情况（不带前缀），也假设相对于 src 目录
+  else {
+    normalizedPath = `../${path}`;
+  }
+
+  return lazy(() => import(/* @vite-ignore */ normalizedPath));
 };
 
-// 创建路由配置
-const createRoutesConfig = (routesConfig: typeof routes): RouteObject[] => {
-  return routesConfig.map((route) => {
-    // 处理重定向路由
-    if (route.redirect) {
-      return {
-        path: route.path,
-        element: <Navigate to={route.redirect} replace />,
-      };
-    }
+// 动态导入组件的函数
+const loadComponents = (componentPath?: string) => {
+  // 返回懒加载组件
+  return lazyLoad(componentPath, "pages/");
+};
 
-    // 动态导入组件
-    const Component = loadComponent(route.component);
+const loadLayouts = (componentPath?: string) => {
+  return lazyLoad(componentPath);
+};
 
-    // 处理布局组件
-    if (route.layout !== false && (route.children || route.routes)) {
-      const LayoutComponent = loadComponent(
-        typeof route.layout === "string"
-          ? route.layout
-          : "@/layouts/basic-layout",
-      );
-      if (LayoutComponent) {
-        // 处理子路由
-        const childrenRoutes = createRoutesConfig(
-          route.children || route.routes || [],
-        );
+const parseRoute = (parentPath: string, route: RouteConfig) => {
+  const result = {} as RouteObject;
+  console.group("[route][parse]", route);
+  const routePath = route.path.startsWith("/") ? route.path : `/${route.path}`;
+  // 如果是绝对路径，不拼接 parentPath
+  const absPath =
+    route.absPath ||
+    (routePath.startsWith("/") ? routePath : parentPath + routePath);
+  console.log("[route]", absPath, parentPath, routePath);
 
-        // 检查是否有index路由
-        const hasIndexRoute = childrenRoutes.some((child) => child.index);
+  result.path = absPath;
 
-        // 如果没有index路由且当前路由有component，则添加一个index路由
-        if (!hasIndexRoute && Component) {
-          childrenRoutes.unshift({
-            index: true,
-            element: (
-              <AuthWrapper requireAuth={route.auth}>
-                <Suspense fallback={<LoadingIndicator />}>
-                  <Component />
-                </Suspense>
-              </AuthWrapper>
-            ),
-          });
-        }
-
-        return {
-          path: route.path,
-          element: (
-            <AuthWrapper requireAuth={route.auth}>
-              <Suspense fallback={<LoadingIndicator />}>
-                <LayoutComponent />
-              </Suspense>
-            </AuthWrapper>
-          ),
-          children: childrenRoutes,
-        };
-      }
-    }
-
-    // 构建路由元素（没有布局的情况）
-    const routeElement = (
-      <AuthWrapper key={route.path} requireAuth={route.auth}>
-        <Suspense fallback={<LoadingIndicator />}>
-          {Component && <Component />}
+  // 处理component
+  if (route.component) {
+    const Component = loadComponents(route.component);
+    console.log("[route]处理component", Component);
+    result.element = (
+      <AuthWrapper route={route}>
+        <Suspense fallback={<PageLoading />}>
+          {Component && createElement(Component)}
         </Suspense>
       </AuthWrapper>
     );
+  }
 
-    return {
-      path: route.path,
-      ...(route.index && { index: true }),
-      element: routeElement,
-      ...(route.children && {
-        children: createRoutesConfig(route.children),
-      }),
-    };
-  });
+  // 处理layout
+  if (route.layout !== false && route.layout !== undefined) {
+    console.log("[route]处理layout");
+    const Layout = loadLayouts(route.layout as string);
+    result.element = (
+      <AuthWrapper route={route}>
+        <Suspense fallback={<PageLoading />}>{Layout && <Layout />}</Suspense>
+      </AuthWrapper>
+    );
+  }
+
+  // 处理重定向
+  if (route.redirect) {
+    console.log("[route]处理重定向");
+    result.element = (
+      <Navigate to={route.absPath || parentPath + route.redirect} replace />
+    );
+  }
+
+  // 递归children
+  if (route.children) {
+    result.children = route.children.map((childRoute) =>
+      parseRoute(parentPath, childRoute),
+    );
+  }
+  console.groupEnd();
+  return result;
 };
 
-const router = createBrowserRouter([
-  ...createRoutesConfig(routes),
+// 创建路由配置
+const buildRoutes = (
+  parentPath: string,
+  items: typeof routes,
+): RouteObject[] => {
+  // console.log("[route]解析", parentPath, items);
+  return items.map((route) => parseRoute(parentPath, route));
+};
+
+export const router = createBrowserRouter(
+  [
+    ...buildRoutes("", routes),
+    {
+      path: `${settings.path}/unauthorized`,
+      element: (
+        <Suspense fallback={<LoadingIndicator />}>
+          <UnauthorizedPage />
+        </Suspense>
+      ),
+    },
+  ],
   {
-    path: "/unauthorized",
-    element: (
-      <Suspense fallback={<LoadingIndicator />}>
-        <UnauthorizedPage />
-      </Suspense>
-    ),
+    basename: settings.path,
   },
-]);
-
-const AppRouter = () => {
-  return <RouterProvider router={router} />;
-};
-
-export default AppRouter;
+);

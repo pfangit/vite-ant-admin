@@ -1,8 +1,7 @@
-import type React from "react";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 
 interface LoggerWrapperProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 /**

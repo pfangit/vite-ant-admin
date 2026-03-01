@@ -1,17 +1,17 @@
 import type { MenuDataItem } from "@ant-design/pro-components";
-import { fetch } from "@/request.tsx";
+import { fecth } from "@/request.tsx";
 
 export type CurrentUser = {
   uid: string;
   nickname: string;
   avatar: string;
-  role: string[];
+  roles: string[];
 };
 
 export const fetchCurrentUser = () => {
-  return fetch<CurrentUser>("/api/current", {});
+  return fecth<CurrentUser>("/api/current", {});
 };
 
 export const fetchMenus = () => {
-  return fetch<MenuDataItem[]>("/api/menus", {});
+  return fecth<MenuDataItem[]>("/api/menus", {});
 };
