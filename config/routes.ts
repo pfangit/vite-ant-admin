@@ -7,16 +7,15 @@ export interface RouteConfig {
   component?: string;
   layout?: string | boolean;
   redirect?: string;
-  name?: string;
   auth?: AuthType;
   exact?: boolean;
+  hideInMenu?: boolean;
   children?: RouteConfig[];
   // 约定式路由相关
   index?: boolean;
   id?: string;
 }
 
-// UmiJS风格的路由配置
 const routes: RouteConfig[] = [
   {
     path: "/",
@@ -24,50 +23,29 @@ const routes: RouteConfig[] = [
     children: [
       {
         path: "/",
-        component: "/home",
-        name: "首页",
+        component: "./home",
         index: true,
       },
       {
         path: "/about",
-        component: "/about",
-        name: "关于我们",
+        component: "./about",
         auth: true,
       },
       {
         path: "/admin",
-        component: "@/layouts/basic-layout",
         auth: "admin",
         children: [
           {
             path: "/admin/user",
-            component: "/admin/user",
-            name: "用户管理",
+            component: "./admin/user",
           },
         ],
       },
     ],
   },
   {
-    path: "/login",
-    component: "/auth/login",
-    layout: false,
-    name: "登录",
-  },
-  {
-    path: "/user",
-    layout: false,
-    children: [
-      {
-        path: "/user/login",
-        redirect: "/login",
-      },
-    ],
-  },
-  // 404 页面
-  {
-    path: "*",
-    component: "/404",
+    path: "/auth",
+    component: "./auth/login",
     layout: false,
   },
 ];

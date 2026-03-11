@@ -7,8 +7,9 @@ interface LanguageState {
   lang: LanguageEnum;
   setLang: (lang: LanguageEnum) => void;
 }
+const langCacheKey = "lang-default";
 
-const defaultLang = (localStorage.getItem("sword-lang") ||
+const defaultLang = (localStorage.getItem(langCacheKey) ||
   "zh") as LanguageEnum;
 
 export const useLanguageStore = createStore<LanguageState>(
@@ -18,7 +19,7 @@ export const useLanguageStore = createStore<LanguageState>(
       i18n.changeLanguage(lang).then(() => {
         // do nothing
       });
-      localStorage.setItem("sword-lang", lang);
+      localStorage.setItem(langCacheKey, lang);
       set({ lang });
     },
   }),

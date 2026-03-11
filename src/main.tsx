@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
-import { LanguageProvider, ThemeProvider } from "@/providers";
+import { ThemeProvider } from "@/providers";
 
 import "./index.css";
 
@@ -13,9 +13,7 @@ const App = () => {
   return (
     <StrictMode>
       <ThemeProvider>
-        <LanguageProvider>
-          <RouterProvider router={router} />
-        </LanguageProvider>
+        <RouterProvider router={router} />
       </ThemeProvider>
     </StrictMode>
   );

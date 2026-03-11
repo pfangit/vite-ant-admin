@@ -10,11 +10,11 @@ export default [
           {
             path: "/",
             name: "欢迎",
-            routes: [
+            children: [
               {
                 path: "/welcome",
                 name: "one",
-                routes: [
+                children: [
                   {
                     path: "/welcome/welcome",
                     name: "two",
@@ -25,8 +25,16 @@ export default [
             ],
           },
           {
-            path: "/demo",
-            name: "例子",
+            path: "/about",
+            name: "关于",
+          },
+          {
+            path: "/admin",
+            name: "管理",
+          },
+          {
+            path: "/auth",
+            name: "登录",
           },
         ],
         success: true,

@@ -1,3 +1,4 @@
+import type { CurrentUser } from "../src/services/auth";
 import { isSuccess } from "./is-success";
 
 export default [
@@ -15,11 +16,11 @@ export default [
       }
       // 响应函数
       const currentUser = {
-        uid: 1,
+        uid: "1",
         nickname: "@cname",
         avatar: "https://img95.699pic.com/photo/40250/6425.jpg_wh300.jpg",
-        role: ["admin"],
-      };
+        roles: ["admin"],
+      } as CurrentUser;
       return {
         code: 0,
         message: "",

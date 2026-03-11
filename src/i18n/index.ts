@@ -2,7 +2,7 @@ import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import HttpApi from "i18next-http-backend";
 import { initReactI18next } from "react-i18next";
-import { settings } from "@/config/settings.ts";
+import { settings } from "../../config/settings.ts";
 
 // 是否是开发环境
 const isDev = import.meta.env.DEV;
@@ -15,7 +15,7 @@ i18n
     fallbackLng: "zh",
     supportedLngs: ["en", "zh"],
     backend: {
-      loadPath: `/i18n/api/${settings.path}/{{lng}}/{{ns}}.json`, // 路径模板
+      loadPath: `/i18n/api${settings.path}/{{lng}}/{{ns}}.json`, // 路径模板
     },
     debug: isDev,
     interpolation: {

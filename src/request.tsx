@@ -51,7 +51,7 @@ export const request = createAlova({
         }
       }
       // 解析的响应数据将传给method实例的transform钩子函数，这些函数将在后续讲解
-      console.log("[request][success]", data);
+      // console.log("[request][success]", data);
       return data;
     },
 

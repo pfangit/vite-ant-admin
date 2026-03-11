@@ -1,6 +1,7 @@
 import type { MenuDataItem } from "@ant-design/pro-components";
 import { useRequest } from "alova/client";
 import { fetchMenus } from "@/services/auth.ts";
+import { settings } from "../../config/settings.ts";
 
 const menuToRoutes = (menus: MenuDataItem[]) => {
   return menus.map((menu: MenuDataItem) => {
@@ -9,6 +10,7 @@ const menuToRoutes = (menus: MenuDataItem[]) => {
     ) as MenuDataItem[] | undefined;
     return {
       ...menu,
+      path: settings.path + menu.path,
       children,
     } as MenuDataItem;
   });

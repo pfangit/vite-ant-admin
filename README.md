@@ -94,7 +94,7 @@ src/
 
 ## 路由权限配置
 
-项目支持灵活的路由权限配置，在[config/routes.ts](src/config/routes.ts)中定义路由时可指定auth属性：
+项目支持灵活的路由权限配置，在[config/routes.ts](config/routes.ts)中定义路由时可指定auth属性：
 
 ```typescript
 {

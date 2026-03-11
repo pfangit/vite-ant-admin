@@ -7,13 +7,11 @@ import { defineConfig, type UserConfigExport } from "vite";
 import { createHtmlPlugin } from "vite-plugin-html";
 import { viteMockServe } from "vite-plugin-mock";
 import proxy from "./config/proxy";
-import { settings } from "./src/config/settings.ts";
+import { settings } from "./config/settings.ts";
 
 const port = parseInt(process.env.PORT || "1420", 10);
 const appEnv = process.env.NODE_ENV || "dev";
 const mock = process.env.VITE_USE_MOCK !== "false";
-
-console.log(process.env);
 
 console.log(
   "----------------- app env ---------- ",
