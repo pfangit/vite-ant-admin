@@ -1,4 +1,4 @@
-import { createAlova } from "alova";
+import { type AlovaMethodCreateConfig, createAlova } from "alova";
 import adapterFetch from "alova/fetch";
 import ReactHook from "alova/react";
 
@@ -66,14 +66,17 @@ export const request = createAlova({
     // 请求完成的拦截器
     // 当你需要在请求不论是成功、失败、还是命中缓存都需要执行的逻辑时，可以在创建alova实例时指定全局的`onComplete`拦截器，例如关闭请求 loading 状态。
     // 接收当前请求的method实例
-    onComplete: async (method) => {
-      console.log("[request][complete]", method);
+    onComplete: async (_method) => {
+      // console.log("[request][complete]", method);
       // 处理请求完成逻辑
     },
   },
 });
 
-export const fecth = <T = any>(url: string, options?: any) => {
+export const fecth = <T = any>(
+  url: string,
+  options?: AlovaMethodCreateConfig<any, any, any>,
+) => {
   return request.Get<T>(url, options);
 };
 

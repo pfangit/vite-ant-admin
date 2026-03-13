@@ -31,6 +31,13 @@ export default [
           {
             path: "/admin",
             name: "管理",
+            children: [
+              {
+                path: "/admin/user",
+                name: "用户管理",
+                exact: true,
+              },
+            ],
           },
           {
             path: "/auth",

@@ -1,5 +1,5 @@
-const User = () => {
-  return <div>用户管理页面</div>;
+const UserManagementPage = () => {
+  return <>用户管理</>;
 };
 
-export default User;
+export default UserManagementPage;

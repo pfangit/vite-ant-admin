@@ -1,10 +1,10 @@
-import { PageLoading } from "@ant-design/pro-components";
-import { lazy, Suspense } from "react";
-import { Navigate, useRouteError } from "react-router";
-import { createBrowserRouter, type RouteObject } from "react-router-dom";
+import {PageLoading} from "@ant-design/pro-components";
+import {lazy, Suspense} from "react";
+import {Navigate, Outlet, useRouteError} from "react-router";
+import {createBrowserRouter, type RouteObject} from "react-router-dom";
 import AuthWrapper from "@/wrappers/auth-wrapper";
-import routes, { type RouteConfig } from "../../config/routes.ts";
-import { settings } from "../../config/settings.ts";
+import routes, {type RouteConfig} from "../../config/routes.ts";
+import {settings} from "../../config/settings.ts";
 
 const exception = {
   403: "/src/pages/exception/exception-403",
@@ -69,7 +69,6 @@ const parsePath = (path?: string, basePath: string = "") => {
 };
 
 const parseRoute = (route: RouteConfig) => {
-  console.group("[route]", route);
   const { layout, index, path, redirect, component, children } = route;
 
   let page: string | undefined;
@@ -82,12 +81,10 @@ const parseRoute = (route: RouteConfig) => {
     pageFile = parsePath(component, "pages/");
     page = metaPages[pageFile];
   }
+  const hasChildren = children && children.length > 0;
+  // 先确定是否有页面，如果没有页面，确定含不含子，如果不含子，使用404页面
+  const element = page ?? (hasChildren ? undefined : metaPages[exception[404]]);
 
-  // 1. 优先使用 page (如果 page 有效)
-  // 2. 如果 page 无效，检查是否有 parent。如果有，则用 404 页；如果没有，则保持 undefined/null
-  const element = page ?? (parent ? metaPages[exception[404]] : undefined);
-
-  console.groupEnd();
   return {
     ...(index ? { index } : { path }),
     ...(redirect ? { element: <Navigate to={redirect} replace /> } : {}),
@@ -118,15 +115,15 @@ const parseRoute = (route: RouteConfig) => {
             ),
           };
         }
-      : undefined,
+      : hasChildren
+        ? async () => <Outlet />
+        : undefined,
   } as RouteObject;
 };
 
 // 创建路由配置
 const buildRoutes = (items: RouteConfig[]): RouteObject[] => {
-  const appRoutes = items.map((route) => parseRoute(route));
-  console.log(appRoutes);
-  return appRoutes;
+  return items.map((route) => parseRoute(route));
 };
 
 export const router = createBrowserRouter(
