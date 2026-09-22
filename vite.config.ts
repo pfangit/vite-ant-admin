@@ -52,12 +52,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
             ) {
               return "vendor-i18n";
             }
-            if (
-              id.includes("node_modules/antd") ||
-              id.includes("node_modules/@ant-design")
-            ) {
-              return "vendor-antd";
-            }
             return undefined;
           },
         },
