@@ -1,5 +1,5 @@
 import type { MenuDataItem } from "@ant-design/pro-components";
-import { fecth } from "@/request.tsx";
+import { http } from "@/request.ts";
 
 export type CurrentUser = {
   uid: string;
@@ -8,10 +8,8 @@ export type CurrentUser = {
   roles: string[];
 };
 
-export const fetchCurrentUser = () => {
-  return fecth<CurrentUser>("/api/current", {});
-};
+export const fetchCurrentUser = () =>
+  http.get<CurrentUser>("/api/current", { cacheFor: 60_000 });
 
-export const fetchMenus = () => {
-  return fecth<MenuDataItem[]>("/api/menus", {});
-};
+export const fetchMenus = () =>
+  http.get<MenuDataItem[]>("/api/menus", { cacheFor: 5 * 60_000 });

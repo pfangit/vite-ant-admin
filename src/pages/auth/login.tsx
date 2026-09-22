@@ -6,6 +6,7 @@ import {
   Flex,
   Form,
   Input,
+  message,
   Tabs,
   Typography,
 } from "antd";
@@ -13,13 +14,17 @@ import QRCode from "antd/es/qrcode";
 import { Lock, QrCode, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { request } from "@/request.tsx";
+import { http, setAuthToken } from "@/request.ts";
 
 const { Title, Text } = Typography;
 
 type LoginForm = {
   username: string;
   password: string;
+};
+
+type LoginResult = {
+  token: string;
 };
 
 const Login = () => {
@@ -34,22 +39,31 @@ const Login = () => {
     location.pathname + location.search ||
     "/";
 
-  const { loading, send } = useRequest(request.Post("/api/auth/login", {}), {
-    immediate: false, // 手动发送，提交数据
-  }).onSuccess((event) => {
-    console.log(event.data); // 当前请求的响应数据
-    // 模拟保存cookie
-    localStorage.setItem(
-      "token",
-      (event.data as unknown as { token: string }).token,
-    );
-    // 登录成功后跳转回登录前的地址
-    if (from.startsWith("/login")) {
-      navigator("/", { replace: true });
-    } else {
-      navigator(from, { replace: true });
-    }
-  });
+  const { loading, send } = useRequest(
+    http.post<LoginResult>(
+      "/api/auth/login",
+      {},
+      { meta: { skipUnauthorized: true } }, // 登录接口自身允许 401/业务失败，不走全局跳登录逻辑
+    ),
+    {
+      immediate: false, // 手动发送，提交数据
+    },
+  )
+    .onSuccess((event) => {
+      const { token } = event.data;
+      // 更新请求层 token 与持久化存储
+      setAuthToken(token);
+      localStorage.setItem("token", token);
+      // 登录成功后跳转回登录前的地址
+      if (from.startsWith("/login")) {
+        navigator("/", { replace: true });
+      } else {
+        navigator(from, { replace: true });
+      }
+    })
+    .onError((event) => {
+      message.error(event.error.message);
+    });
 
   const onFinish = (values: LoginForm) => {
     send(values);
