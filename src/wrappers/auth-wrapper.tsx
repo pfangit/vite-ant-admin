@@ -1,9 +1,14 @@
-import {useRequest} from "alova/client";
-import {type FC, type ReactNode, useEffect, useRef, useState} from "react";
-import {useLocation, useNavigate} from "react-router";
-import {LoadingIndicator} from "@/components/loading.tsx";
-import {type CurrentUser, fetchCurrentUser} from "@/services/auth.ts";
-import type {RouteConfig} from "../../config/routes.ts";
+import { useRequest } from "alova/client";
+import { type FC, type ReactNode, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { LoadingIndicator } from "@/components/loading.tsx";
+import { type CurrentUser, fetchCurrentUser } from "@/services/auth.ts";
+import { useAuthStore } from "@/store/auth.ts";
+import type { RouteConfig } from "../../config/routes.ts";
+
+// 未登录时的登录页地址，redirect 携带完整相对地址（含查询参数）
+const buildLoginPath = (from: string) =>
+  `/auth?redirect=${encodeURIComponent(from)}`;
 
 export type AuthType = boolean | string | string[] | undefined;
 
@@ -50,6 +55,7 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, route }) => {
   const location = useLocation();
   const locationRef = useRef(location);
   locationRef.current = location;
+  const setUser = useAuthStore((state) => state.setUser);
 
   const { send } = useRequest(fetchCurrentUser(), {
     initialData: undefined as CurrentUser | undefined,
@@ -73,12 +79,8 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, route }) => {
         if (!hasPermission(requireAuth, data)) {
           if (!isAuthenticated(data)) {
             const { pathname, search } = locationRef.current;
-            const loginPath = `/auth/?redirect=${window.btoa(window.location.href)}`;
             // 重定向到登录页，同时保存尝试访问的完整页面地址（包括查询参数）
-            navigate(loginPath, {
-              state: { from: pathname + search },
-              replace: true,
-            });
+            navigate(buildLoginPath(pathname + search), { replace: true });
           } else {
             // 用户已认证但没有权限，可以重定向到无权限页面
             navigate(`/unauthorized`, {
@@ -88,6 +90,8 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, route }) => {
           return;
         }
 
+        // 认证通过，同步用户信息到全局 auth store（供按钮级权限使用）
+        setUser(data);
         setIsChecking(false);
       })
       .catch((error: Error) => {
@@ -95,14 +99,16 @@ const AuthWrapper: FC<AuthWrapperProps> = ({ children, route }) => {
           return;
         }
         console.error("认证检查失败", error);
-        setIsChecking(false);
+        // fail-closed：无法确认身份即视为未登录，安全起见不放行受保护内容
+        const { pathname, search } = locationRef.current;
+        navigate(buildLoginPath(pathname + search), { replace: true });
       });
 
     return () => {
       cancelled = true;
     };
     // 认证检查只在路由挂载/权限配置变化时执行一次，避免因 location 变化导致的重复请求
-  }, [requireAuth, send, navigate]);
+  }, [requireAuth, send, navigate, setUser]);
 
   // 如果还在检查认证状态，显示加载指示器
   if (isChecking) {

@@ -1,20 +1,22 @@
 export default {
   development: {
-    "/auth": {
-      target: "http://localhost",
+    "/api": {
+      target: "http://localhost:8080",
       changeOrigin: true,
-      pathRewrite: {
-        "^": "",
-      },
+      // 保持原路径转发（Vite 使用 rewrite 函数，非 webpack 的 pathRewrite）
+      rewrite: (path: string) => path,
+    },
+    "/auth": {
+      target: "http://localhost:8080",
+      changeOrigin: true,
+      rewrite: (path: string) => path,
     },
   },
-  prod: {
-    "/auth": {
-      target: "http://localhost",
+  production: {
+    "/api": {
+      target: "http://localhost:8080",
       changeOrigin: true,
-      pathRewrite: {
-        "^": "",
-      },
+      rewrite: (path: string) => path,
     },
   },
 };

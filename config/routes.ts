@@ -32,6 +32,11 @@ const routes: RouteConfig[] = [
         auth: true,
       },
       {
+        path: "/account",
+        component: "./account",
+        auth: true,
+      },
+      {
         path: "/admin",
         auth: "admin",
         children: [

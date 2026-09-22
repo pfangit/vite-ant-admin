@@ -1,46 +1,83 @@
 import type { CurrentUser } from "../src/services/auth";
-import { isSuccess } from "./is-success";
+
+const currentUser: CurrentUser = {
+  uid: "1",
+  nickname: "管理员",
+  avatar: "https://img95.699pic.com/photo/40250/6425.jpg_wh300.jpg",
+  roles: ["admin"],
+  permissions: [
+    "user:search",
+    "user:add",
+    "user:edit",
+    "user:delete",
+    "account:view",
+    "account:update",
+  ],
+};
 
 export default [
   {
-    url: "/api/current", // 接口路径
-    method: "get", // 请求方法
-    response: () => {
-      const { success, code } = isSuccess();
-      if (success) {
+    url: "/api/current",
+    method: "get",
+    response: () => ({
+      code: 0,
+      message: "",
+      data: currentUser,
+      success: true,
+    }),
+  },
+  {
+    url: "/api/auth/login",
+    method: "post",
+    response: ({
+      body,
+    }: {
+      body?: { username?: string; password?: string };
+    }) => {
+      const { username, password } = body ?? {};
+      if (!username || !password) {
         return {
-          code: code, // 自定义状态码
-          message: "", // 状态信息
+          code: 1001,
+          message: "用户名或密码不能为空",
           success: false,
         };
       }
-      // 响应函数
-      const currentUser = {
-        uid: "1",
-        nickname: "@cname",
-        avatar: "https://img95.699pic.com/photo/40250/6425.jpg_wh300.jpg",
-        roles: ["admin"],
-      } as CurrentUser;
       return {
         code: 0,
         message: "",
-        data: currentUser,
+        data: { token: `mock-token-${Date.now()}` },
         success: true,
       };
     },
   },
   {
-    url: "/api/auth/login",
+    url: "/api/auth/logout",
     method: "post",
-    response: () => {
-      // 响应函数
-      const data = {
-        token: "@cname",
-      };
+    response: () => ({
+      code: 0,
+      message: "",
+      success: true,
+    }),
+  },
+  {
+    url: "/api/auth/change-password",
+    method: "post",
+    response: ({
+      body,
+    }: {
+      body?: { oldPassword?: string; newPassword?: string };
+    }) => {
+      const { oldPassword, newPassword } = body ?? {};
+      if (!oldPassword || !newPassword || newPassword.length < 6) {
+        return {
+          code: 1002,
+          message: "请填写完整，且新密码长度不少于 6 位",
+          success: false,
+        };
+      }
       return {
-        code: 0, // 自定义状态码
-        message: "", // 状态信息
-        data: data, // 返回数据
+        code: 0,
+        message: "",
         success: true,
       };
     },

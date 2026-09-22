@@ -1,7 +1,7 @@
 export default [
   {
-    url: "/api/menus", // 接口路径
-    method: "get", // 请求方法
+    url: "/api/menus",
+    method: "get",
     response: () => {
       return {
         code: 0,
@@ -9,20 +9,7 @@ export default [
         data: [
           {
             path: "/",
-            name: "欢迎",
-            children: [
-              {
-                path: "/welcome",
-                name: "one",
-                children: [
-                  {
-                    path: "/welcome/welcome",
-                    name: "two",
-                    exact: true,
-                  },
-                ],
-              },
-            ],
+            name: "首页",
           },
           {
             path: "/about",
@@ -35,13 +22,12 @@ export default [
               {
                 path: "/admin/user",
                 name: "用户管理",
-                exact: true,
               },
             ],
           },
           {
-            path: "/auth",
-            name: "登录",
+            path: "/account",
+            name: "个人中心",
           },
         ],
         success: true,

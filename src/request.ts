@@ -50,6 +50,8 @@ export interface RequestMeta {
   responseType?: "json" | "text" | "blob" | "arrayBuffer";
   /** 跳过全局 401 处理（适用于登录等允许匿名的接口） */
   skipUnauthorized?: boolean;
+  /** 跳过全局错误提示（业务侧自行处理错误时开启，如登录页） */
+  silent?: boolean;
 }
 
 export type HttpConfig<T = unknown> = AlovaMethodCreateConfig<

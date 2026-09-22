@@ -14,7 +14,7 @@ const UnauthorizedPage = () => {
             返回首页
           </Link>
           <Link
-            to="/login"
+            to="/auth"
             className="text-blue-600 hover:text-blue-800 font-medium py-2 px-6 rounded-lg transition duration-300 inline-block"
           >
             重新登录

@@ -6,16 +6,21 @@ import {
   WaterMark,
 } from "@ant-design/pro-components";
 import { useRequest } from "alova/client";
-import { type FC, type PropsWithChildren, useRef } from "react";
-import { Outlet, useSearchParams } from "react-router";
+import { Avatar, Dropdown } from "antd";
+import { LogOut, UserRound } from "lucide-react";
+import { type FC, type PropsWithChildren, useEffect, useRef } from "react";
+import { Outlet, useNavigate, useSearchParams } from "react-router";
 import { NavLink } from "react-router-dom";
 import useLoadMenu from "@/hooks/use-load-menu.ts";
-import { fetchCurrentUser } from "@/services/auth.ts";
+import { invalidateCache, setAuthToken } from "@/request.ts";
+import { fetchCurrentUser, fetchMenus, logout } from "@/services/auth.ts";
+import { useAuthStore } from "@/store/auth.ts";
 import { UserContext } from "@/store/user-context.ts";
 import { settings } from "../../config/settings.ts";
 
 const BaseLayout: FC<PropsWithChildren> = () => {
   const [searchParams] = useSearchParams();
+  const navigator = useNavigate();
 
   const isIframe = useRef(self !== top || "1" === searchParams.get("iframe"));
 
@@ -23,6 +28,37 @@ const BaseLayout: FC<PropsWithChildren> = () => {
   const { data: currentUser } = useRequest(fetchCurrentUser(), {
     initialData: undefined,
   });
+
+  const setUser = useAuthStore((state) => state.setUser);
+  useEffect(() => {
+    // 同步用户信息到全局 auth store，供路由外任意组件做按钮级权限判断
+    setUser(currentUser ?? null);
+  }, [currentUser, setUser]);
+
+  const handleUserMenuClick = (key: string) => {
+    if (key === "account") {
+      navigator("/account");
+      return;
+    }
+    if (key === "logout") {
+      void (async () => {
+        try {
+          await logout();
+        } catch {
+          // 登出接口异常不影响本地清理
+        }
+        setAuthToken(null);
+        useAuthStore.getState().clear();
+        try {
+          localStorage.removeItem("token");
+        } catch {
+          // ignore
+        }
+        invalidateCache([fetchCurrentUser(), fetchMenus()]);
+        navigator("/auth", { replace: true });
+      })();
+    }
+  };
 
   if (loading) {
     return <PageLoading>菜单加载中...</PageLoading>;
@@ -60,14 +96,36 @@ const BaseLayout: FC<PropsWithChildren> = () => {
     },
   };
 
+  const headerTextColor = isIframe.current ? "#232F49" : "#FFFFFF";
+
+  const userActions = (
+    <Dropdown
+      placement="bottomRight"
+      menu={{
+        items: [
+          { key: "account", icon: <UserRound size={14} />, label: "个人中心" },
+          { key: "logout", icon: <LogOut size={14} />, label: "退出登录" },
+        ],
+        onClick: ({ key }) => handleUserMenuClick(key),
+      }}
+    >
+      <span
+        className="flex items-center gap-2 cursor-pointer px-2"
+        style={{ color: headerTextColor }}
+      >
+        <Avatar
+          size="small"
+          src={currentUser?.avatar}
+          icon={!currentUser?.avatar ? <UserRound size={14} /> : undefined}
+        />
+        <span>{currentUser?.nickname ?? "未登录"}</span>
+      </span>
+    </Dropdown>
+  );
+
   const rightContent: ProLayoutProps = {
     menuFooterRender: false,
-    actionsRender: false,
-    avatarProps: {
-      render: () => {
-        return <>right content</>;
-      },
-    },
+    actionsRender: () => [userActions],
   };
 
   const layout: ProLayoutProps["layout"] = "mix";

@@ -3,25 +3,26 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { type ConfigEnv, defineConfig, type UserConfigExport } from "vite";
+import { loadEnv } from "vite";
 import { createHtmlPlugin } from "vite-plugin-html";
 import { viteMockServe } from "vite-plugin-mock";
 import proxy from "./config/proxy";
 import { settings } from "./config/settings.ts";
 
-const port = parseInt(process.env.PORT || "1420", 10);
-const appEnv = process.env.NODE_ENV || "dev";
-const mock = process.env.VITE_USE_MOCK !== "false";
-const analyze = process.env.VITE_ANALYZE === "true";
-
-console.log(
-  "----------------- app env ---------- ",
-  appEnv,
-  mock ? "mock" : "no mock",
-);
-
 // https://vite.dev/config/
 export default ({ mode }: ConfigEnv): UserConfigExport => {
+  // 只暴露 VITE_ 前缀的环境变量到 import.meta.env
+  const env = loadEnv(mode, process.cwd(), "VITE_");
+  const port = parseInt(process.env.PORT || env.VITE_PORT || "1420", 10);
+  const mock = env.VITE_USE_MOCK !== "false";
+  const analyze = env.VITE_ANALYZE === "true";
   const isProd = mode === "production";
+
+  console.log(
+    "----------------- app env ---------- ",
+    mode,
+    mock ? "mock" : "no mock",
+  );
 
   return defineConfig({
     build: {
@@ -100,7 +101,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       port: port || 5173,
       strictPort: true,
       open: true,
-      proxy: proxy[appEnv as keyof typeof proxy],
+      proxy: proxy[mode === "production" ? "production" : "development"],
     },
     resolve: {
       alias: {

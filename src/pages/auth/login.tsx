@@ -14,59 +14,65 @@ import QRCode from "antd/es/qrcode";
 import { Lock, QrCode, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { http, setAuthToken } from "@/request.ts";
+import { invalidateCache, setAuthToken } from "@/request.ts";
+import {
+  fetchCurrentUser,
+  type LoginParams,
+  type LoginResult,
+  login,
+} from "@/services/auth.ts";
+import { expiringStorage } from "@/utils/expiring-storage.ts";
+import { settings } from "../../../config/settings.ts";
 
 const { Title, Text } = Typography;
 
-type LoginForm = {
-  username: string;
-  password: string;
-};
-
-type LoginResult = {
-  token: string;
-};
+// 记住用户名的 localStorage key 与有效期（30 天）
+const REMEMBER_KEY = "remember-username";
+const REMEMBER_TTL = 30 * 24 * 60 * 60;
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState("account");
   const location = useLocation();
   const navigator = useNavigate();
 
-  // 获取登录前的完整地址（包括查询参数）
-  // 如果没有来源地址或者来源地址就是登录页，则默认跳转到首页
-  const from =
-    (location.state as { from?: string })?.from ||
-    location.pathname + location.search ||
-    "/";
+  const rememberedUsername = expiringStorage.get(REMEMBER_KEY) as string | null;
+  // 登录前的目标地址：优先取 URL 上的 redirect（由 401/鉴权重定向写入）
+  const from = new URLSearchParams(location.search).get("redirect") || "/";
+  // basename 前缀由 router 统一处理，跳转时只保留相对路由
+  const relativeFrom = from.startsWith(settings.path)
+    ? from.slice(settings.path.length) || "/"
+    : from;
+  // 防止登录后跳回登录页自身
+  const target = relativeFrom.startsWith("/auth") ? "/" : relativeFrom;
 
-  const { loading, send } = useRequest(
-    http.post<LoginResult>(
-      "/api/auth/login",
-      {},
-      { meta: { skipUnauthorized: true } }, // 登录接口自身允许 401/业务失败，不走全局跳登录逻辑
-    ),
-    {
-      immediate: false, // 手动发送，提交数据
-    },
-  )
+  const { loading, send } = useRequest(login, {
+    immediate: false, // 手动发送，提交数据
+  })
     .onSuccess((event) => {
-      const { token } = event.data;
+      const { token } = event.data as LoginResult;
       // 更新请求层 token 与持久化存储
       setAuthToken(token);
-      localStorage.setItem("token", token);
-      // 登录成功后跳转回登录前的地址
-      if (from.startsWith("/login")) {
-        navigator("/", { replace: true });
-      } else {
-        navigator(from, { replace: true });
+      try {
+        localStorage.setItem("token", token);
+      } catch {
+        // ignore
       }
+      // 清理上一会话的用户缓存，登录后重新拉取
+      invalidateCache(fetchCurrentUser());
+      // 登录成功后跳转回登录前的地址
+      navigator(target, { replace: true });
     })
     .onError((event) => {
       message.error(event.error.message);
     });
 
-  const onFinish = (values: LoginForm) => {
-    send(values);
+  const onFinish = (values: LoginParams & { remember?: boolean }) => {
+    if (values.remember) {
+      expiringStorage.set(REMEMBER_KEY, values.username, REMEMBER_TTL);
+    } else {
+      expiringStorage.remove(REMEMBER_KEY);
+    }
+    send({ username: values.username, password: values.password });
   };
 
   return (
@@ -95,9 +101,12 @@ const Login = () => {
                 </div>
               ),
               children: (
-                <Form<LoginForm>
+                <Form<LoginParams & { remember?: boolean }>
                   name="login"
-                  initialValues={{ remember: true }}
+                  initialValues={{
+                    remember: Boolean(rememberedUsername),
+                    username: rememberedUsername ?? undefined,
+                  }}
                   onFinish={onFinish}
                   layout="vertical"
                 >
@@ -129,7 +138,7 @@ const Login = () => {
                       },
                     ]}
                   >
-                    <Input
+                    <Input.Password
                       prefix={<Lock className="text-gray-400" />}
                       type="password"
                       placeholder="Enter your password"
@@ -147,12 +156,15 @@ const Login = () => {
                       >
                         <Checkbox>Remember me</Checkbox>
                       </Form.Item>
-                      <a
-                        href=""
-                        className="text-blue-500 hover:text-blue-700 text-sm"
+                      <Button
+                        type="link"
+                        className="p-0"
+                        onClick={() => {
+                          message.info("忘记密码请联系管理员重置");
+                        }}
                       >
                         Forgot password?
-                      </a>
+                      </Button>
                     </Flex>
                   </Form.Item>
 
@@ -170,9 +182,15 @@ const Login = () => {
 
                     <div className="text-center mt-6 text-sm">
                       <Text type="secondary">Don't have an account?</Text>{" "}
-                      <a href="" className="text-blue-500 hover:text-blue-700">
+                      <Button
+                        type="link"
+                        className="p-0"
+                        onClick={() => {
+                          message.info("如需账号请联系管理员开通");
+                        }}
+                      >
                         Sign up
-                      </a>
+                      </Button>
                     </div>
                   </Form.Item>
                 </Form>
@@ -189,7 +207,7 @@ const Login = () => {
               children: (
                 <div className="flex flex-col items-center">
                   <QRCode
-                    value="https://example.com/login"
+                    value="vant-pro://login"
                     size={200}
                     icon="/vite.svg"
                   />

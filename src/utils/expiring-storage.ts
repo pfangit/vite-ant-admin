@@ -1,6 +1,6 @@
 export const expiringStorage = {
   // 设置带过期时间的数据，expireTime单位为s
-  set(key: string, value: any, expireTime: number) {
+  set<T>(key: string, value: T, expireTime: number) {
     const now = Date.now();
     const item = {
       value: value,
@@ -10,7 +10,7 @@ export const expiringStorage = {
   },
 
   // 获取数据，如果过期则自动删除并返回 null
-  get(key: string) {
+  get<T>(key: string): T | null {
     const itemStr = localStorage.getItem(key);
     if (!itemStr) return null;
 
@@ -21,7 +21,7 @@ export const expiringStorage = {
       localStorage.removeItem(key);
       return null;
     }
-    return item.value;
+    return item.value as T;
   },
 
   // 删除数据

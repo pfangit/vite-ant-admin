@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:tsc": "tsc -b && vite build",
     "format": "npx @biomejs/biome format --write ./src",
-    "lint": "yarn lint-staged",
+    "lint": "lint-staged",
     "check": "biome check src/",
     "preview": "vite preview"
   },
