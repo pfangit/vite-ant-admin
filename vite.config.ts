@@ -1,9 +1,8 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
-import externalGlobals from "rollup-plugin-external-globals";
 import { visualizer } from "rollup-plugin-visualizer";
-import { defineConfig, type UserConfigExport } from "vite";
+import { type ConfigEnv, defineConfig, type UserConfigExport } from "vite";
 import { createHtmlPlugin } from "vite-plugin-html";
 import { viteMockServe } from "vite-plugin-mock";
 import proxy from "./config/proxy";
@@ -12,6 +11,7 @@ import { settings } from "./config/settings.ts";
 const port = parseInt(process.env.PORT || "1420", 10);
 const appEnv = process.env.NODE_ENV || "dev";
 const mock = process.env.VITE_USE_MOCK !== "false";
+const analyze = process.env.VITE_ANALYZE === "true";
 
 console.log(
   "----------------- app env ---------- ",
@@ -20,7 +20,9 @@ console.log(
 );
 
 // https://vite.dev/config/
-export default (): UserConfigExport => {
+export default ({ mode }: ConfigEnv): UserConfigExport => {
+  const isProd = mode === "production";
+
   return defineConfig({
     build: {
       rollupOptions: {
@@ -28,22 +30,41 @@ export default (): UserConfigExport => {
           chunkFileNames: "js/[name]-[hash].js",
           entryFileNames: "js/[name]-[hash].js",
           assetFileNames: "[ext]/[name]-[hash].[ext]",
+          manualChunks(id) {
+            // pro-components 及 @ant-design/pro-* 仅被布局按需加载，保持独立分包，
+            // 避免被并入入口 vendor 导致首屏全量加载。
+            if (id.includes("node_modules/@ant-design/pro-")) {
+              return undefined;
+            }
+            if (
+              id.includes("node_modules/react-router") ||
+              id.includes("node_modules/react/") ||
+              id.includes("node_modules/react-dom") ||
+              id.includes("node_modules/alova") ||
+              id.includes("node_modules/zustand")
+            ) {
+              return "vendor-react";
+            }
+            if (
+              id.includes("node_modules/i18next") ||
+              id.includes("node_modules/react-i18next")
+            ) {
+              return "vendor-i18n";
+            }
+            if (
+              id.includes("node_modules/antd") ||
+              id.includes("node_modules/@ant-design")
+            ) {
+              return "vendor-antd";
+            }
+            return undefined;
+          },
         },
-        plugins: [
-          externalGlobals({
-            // react: "React",
-            // "react-dom": "ReactDOM",
-            // "react-router": "ReactRouter",
-            // "react-router-dom": "ReactRouterDOM",
-          }),
-        ],
       },
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
+    },
+    esbuild: {
+      // 生产构建时移除 console/debugger，开发环境保留
+      drop: isProd ? ["console", "debugger"] : [],
     },
     plugins: [
       react(),
@@ -63,12 +84,14 @@ export default (): UserConfigExport => {
           },
         },
       }),
-      visualizer({
-        gzipSize: true,
-        brotliSize: true,
-        emitFile: false,
-        open: true, //如果存在本地服务端口，将在打包后自动展示
-      }),
+      ...(analyze
+        ? [
+            visualizer({
+              gzipSize: true,
+              brotliSize: true,
+            }),
+          ]
+        : []),
     ],
     // 1. prevent vite from obscuring rust errors
     clearScreen: false,

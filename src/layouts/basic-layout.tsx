@@ -5,11 +5,12 @@ import {
   type ProTokenType,
   WaterMark,
 } from "@ant-design/pro-components";
-import { type FC, type PropsWithChildren, useContext, useRef } from "react";
+import { useRequest } from "alova/client";
+import { type FC, type PropsWithChildren, useRef } from "react";
 import { Outlet, useSearchParams } from "react-router";
 import { NavLink } from "react-router-dom";
 import useLoadMenu from "@/hooks/use-load-menu.ts";
-import type { CurrentUser } from "@/services/auth.ts";
+import { fetchCurrentUser } from "@/services/auth.ts";
 import { UserContext } from "@/store/user-context.ts";
 import { settings } from "../../config/settings.ts";
 
@@ -19,8 +20,9 @@ const BaseLayout: FC<PropsWithChildren> = () => {
   const isIframe = useRef(self !== top || "1" === searchParams.get("iframe"));
 
   const { menus, routes, loading } = useLoadMenu();
-
-  const currentUser = useContext(UserContext) as unknown as CurrentUser;
+  const { data: currentUser } = useRequest(fetchCurrentUser(), {
+    initialData: undefined,
+  });
 
   if (loading) {
     return <PageLoading>菜单加载中...</PageLoading>;
@@ -104,45 +106,47 @@ const BaseLayout: FC<PropsWithChildren> = () => {
 
   let waterMark: string[] | string = "";
 
-  if (currentUser) {
+  if (currentUser?.nickname) {
     waterMark = [`${currentUser.nickname}`];
   }
 
   return (
-    <WaterMark content={waterMark} rotate={-45} zIndex={9999}>
-      <ProLayout
-        className={"basic-layout"}
-        splitMenus={true}
-        fixSiderbar={true}
-        fixedHeader={true}
-        layout={layout}
-        {...rightContent}
-        {...frameOptions}
-        title={settings.appName}
-        menuData={menus}
-        route={{
-          path: "/",
-          routes: routes,
-        }}
-        contentStyle={{
-          paddingBlock: 12,
-          paddingInline: 12,
-        }}
-        menuItemRender={(item, dom) => {
-          if (item.path) {
-            return (
-              <NavLink to={item.path.substring(settings.path.length)} end>
-                {dom}
-              </NavLink>
-            );
-          }
+    <UserContext.Provider value={currentUser ?? null}>
+      <WaterMark content={waterMark} rotate={-45} zIndex={9999}>
+        <ProLayout
+          className={"basic-layout"}
+          splitMenus={true}
+          fixSiderbar={true}
+          fixedHeader={true}
+          layout={layout}
+          {...rightContent}
+          {...frameOptions}
+          title={settings.appName}
+          menuData={menus}
+          route={{
+            path: "/",
+            routes: routes,
+          }}
+          contentStyle={{
+            paddingBlock: 12,
+            paddingInline: 12,
+          }}
+          menuItemRender={(item, dom) => {
+            if (item.path) {
+              return (
+                <NavLink to={item.path.substring(settings.path.length)} end>
+                  {dom}
+                </NavLink>
+              );
+            }
 
-          return dom;
-        }}
-      >
-        <Outlet />
-      </ProLayout>
-    </WaterMark>
+            return dom;
+          }}
+        >
+          <Outlet />
+        </ProLayout>
+      </WaterMark>
+    </UserContext.Provider>
   );
 };
 

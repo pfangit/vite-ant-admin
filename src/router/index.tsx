@@ -1,10 +1,13 @@
-import {PageLoading} from "@ant-design/pro-components";
-import {lazy, Suspense} from "react";
-import {Navigate, Outlet, useRouteError} from "react-router";
-import {createBrowserRouter, type RouteObject} from "react-router-dom";
+import { type ComponentType, lazy, Suspense } from "react";
+import { Navigate, useRouteError } from "react-router";
+import { createBrowserRouter, type RouteObject } from "react-router-dom";
+import { LoadingIndicator } from "@/components/loading.tsx";
 import AuthWrapper from "@/wrappers/auth-wrapper";
-import routes, {type RouteConfig} from "../../config/routes.ts";
-import {settings} from "../../config/settings.ts";
+import routes, {
+  type AuthType,
+  type RouteConfig,
+} from "../../config/routes.ts";
+import { settings } from "../../config/settings.ts";
 
 const exception = {
   403: "/src/pages/exception/exception-403",
@@ -12,6 +15,7 @@ const exception = {
   500: "/src/pages/exception/exception-500",
 };
 
+// 页面按文件分包、按需加载（未开启 eager，路由命中时才动态 import）
 const pages = import.meta.glob([
   "/src/{pages,layouts}/*.{ts,tsx,js,jsx}",
   "/src/{pages,layouts}/**/*.{ts,tsx,js,jsx}",
@@ -20,27 +24,54 @@ const pages = import.meta.glob([
   "!**/*.{d.ts,json}",
 ]);
 
-const metaPages = Object.entries(pages).reduce((prev, [key, val]) => {
-  return {
-    ...prev,
-    [key.replace(/(\/index)?\.tsx$/, "")]: val,
-  };
-}, {} as any);
+type PageLoader = () => Promise<{ default: ComponentType }>;
+
+const metaPages = Object.entries(pages).reduce(
+  (prev, [key, val]) => {
+    prev[key.replace(/(\/index)?\.(tsx|ts|jsx|js)$/, "")] = val as PageLoader;
+    return prev;
+  },
+  {} as Record<string, PageLoader>,
+);
+
+const loadPage = (name: string) => () => {
+  const loader = metaPages[name];
+  if (!loader) {
+    return Promise.reject(new Error(`页面模块不存在: ${name}`));
+  }
+  return loader();
+};
 
 // 未授权页面
-const UnauthorizedPage = lazy(() => import("@/pages/unauthorized.tsx"));
+const UnauthorizedPage = lazy(loadPage("/src/pages/unauthorized"));
 
-// 加载指示器组件
-const LoadingIndicator = () => <PageLoading />;
+// 404 兜底页面
+const NotFoundPage = lazy(loadPage("/src/pages/404"));
 
-const parsePath = (path?: string, basePath: string = "") => {
+// 500 错误页面（供 ErrorBoundary 兜底展示）
+const ServerErrorPage = lazy(loadPage(exception[500]));
+
+// 路由懒加载期间的占位 UI
+const RouteHydrateFallback = () => <LoadingIndicator text="页面加载中..." />;
+
+// 路由出错时的兜底 UI
+const RouteErrorBoundary = () => {
+  const error = useRouteError();
+  console.error("RouteErrorBoundary", error);
+  return (
+    <Suspense fallback={<LoadingIndicator text="页面加载失败" />}>
+      <ServerErrorPage />
+    </Suspense>
+  );
+};
+
+const parsePath = (path?: string, basePath = ""): string => {
   if (!path) {
     return "";
   }
-  // 处理路径别名
-  let normalizedPath = path;
   const pathPrefix = `/src/${basePath}`;
-  // 优先处理 @/ 别名
+  let normalizedPath = path;
+  // 处理路径别名
   if (path.startsWith("@/")) {
     normalizedPath = path.replace("@/", pathPrefix);
   }
@@ -56,86 +87,94 @@ const parsePath = (path?: string, basePath: string = "") => {
   else {
     normalizedPath = `${pathPrefix}/${path}`;
   }
-  // 尝试匹配 metaPages 中的路径
-  const matchedPath = Object.keys(metaPages).find(
-    (key) => key === normalizedPath || key === `${normalizedPath}/index`,
-  );
-  if (matchedPath) {
+  normalizedPath = normalizedPath.replace(/\.(tsx|ts|jsx|js)$/, "");
+  if (metaPages[normalizedPath]) {
     return normalizedPath;
   }
-
-  console.warn(`No matching path found for ${path} ${normalizedPath}`);
+  const withoutIndex = normalizedPath.replace(/\/index$/, "");
+  if (metaPages[withoutIndex]) {
+    return withoutIndex;
+  }
+  console.warn(`No matching path found for "${path}"`);
   return "";
 };
 
-const parseRoute = (route: RouteConfig) => {
+const parseRoute = (route: RouteConfig, parentAuth?: AuthType) => {
   const { layout, index, path, redirect, component, children } = route;
+  // 子路由未声明 auth 时继承父级权限，避免 /admin/user 因自身无 auth 而绕过鉴权
+  const effectiveAuth = route.auth ?? parentAuth;
 
-  let page: string | undefined;
-  let pageFile: string | undefined;
-
+  let page: PageLoader | undefined;
   if (typeof layout === "string") {
-    pageFile = parsePath(layout);
-    page = metaPages[pageFile];
+    const file = parsePath(layout);
+    page = metaPages[file];
   } else if (component) {
-    pageFile = parsePath(component, "pages/");
-    page = metaPages[pageFile];
+    const file = parsePath(component, "pages/");
+    page = metaPages[file];
   }
-  const hasChildren = children && children.length > 0;
-  // 先确定是否有页面，如果没有页面，确定含不含子，如果不含子，使用404页面
-  const element = page ?? (hasChildren ? undefined : metaPages[exception[404]]);
+
+  const hasChildren = Boolean(children?.length);
+  const routeChildren = hasChildren
+    ? buildRoutes(children as RouteConfig[], effectiveAuth)
+    : undefined;
+  // 纯 redirect 路由只渲染 <Navigate>，不再挂 404/组件，避免覆盖重定向
+  const pageLoader = redirect
+    ? undefined
+    : (page ?? (!hasChildren ? metaPages[exception[404]] : undefined));
+
+  const element = redirect ? <Navigate to={redirect} replace /> : undefined;
 
   return {
     ...(index ? { index } : { path }),
-    ...(redirect ? { element: <Navigate to={redirect} replace /> } : {}),
-    ErrorBoundary: () => {
-      const error = useRouteError();
-      console.log("ErrorBoundary", error);
-      return null;
-    },
-    HydrateFallback: () => {
-      const error = useRouteError();
-      console.log("HydrateFallback", error);
-      return null;
-    },
-    ...(children
-      ? {
-          children: buildRoutes(children),
-        }
-      : {}),
+    ...(element ? { element } : {}),
+    ErrorBoundary: RouteErrorBoundary,
+    HydrateFallback: RouteHydrateFallback,
+    ...(routeChildren ? { children: routeChildren } : {}),
     ...(layout === false ? { handle: { layout: false } } : {}),
-    lazy: element
+    lazy: pageLoader
       ? async () => {
-          const { default: Component } = await element();
-          return {
-            Component: () => (
-              <AuthWrapper route={route}>
-                <Component />
-              </AuthWrapper>
-            ),
-          };
+          const { default: Component } = await pageLoader();
+          const wrapped = effectiveAuth
+            ? () => (
+                <AuthWrapper route={{ ...route, auth: effectiveAuth }}>
+                  <Component />
+                </AuthWrapper>
+              )
+            : Component;
+          return { Component: wrapped };
         }
-      : hasChildren
-        ? async () => <Outlet />
-        : undefined,
+      : undefined,
   } as RouteObject;
 };
 
 // 创建路由配置
-const buildRoutes = (items: RouteConfig[]): RouteObject[] => {
-  return items.map((route) => parseRoute(route));
+const buildRoutes = (
+  items: RouteConfig[],
+  parentAuth?: AuthType,
+): RouteObject[] => {
+  return items.map((route) => parseRoute(route, parentAuth));
 };
 
 export const router = createBrowserRouter(
   [
     ...buildRoutes(routes),
     {
-      path: `unauthorized`,
+      path: "unauthorized",
       element: (
-        <Suspense fallback={<LoadingIndicator />}>
+        <Suspense fallback={<LoadingIndicator text="加载中..." />}>
           <UnauthorizedPage />
         </Suspense>
       ),
+    },
+    {
+      path: "*",
+      element: (
+        <Suspense fallback={<LoadingIndicator text="加载中..." />}>
+          <NotFoundPage />
+        </Suspense>
+      ),
+      ErrorBoundary: RouteErrorBoundary,
+      HydrateFallback: RouteHydrateFallback,
     },
   ],
   {
